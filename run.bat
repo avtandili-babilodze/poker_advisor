@@ -68,28 +68,45 @@ echo Using Python: %PYLAUNCH%
 %PYLAUNCH% -c "import sys; print('Python', sys.version.split()[0], 'at', sys.executable)"
 echo.
 
-REM --- 4. Create the local virtual environment on first run ----------
+REM --- 4. Create / repair the local virtual environment -------------
+REM  This is fully automatic: the user never has to delete anything.
+REM  If the .venv is missing, was copied from another computer
+REM  (e.g. a Linux/Mac venv with no Windows python.exe), or is simply
+REM  broken, we wipe it and build a fresh one - up to two attempts.
 set "VENV_PY=.venv\Scripts\python.exe"
+
+REM A .venv that exists but has no Windows python.exe was built on
+REM another operating system. Remove it so we can rebuild it here.
+if exist ".venv" if not exist "%VENV_PY%" (
+    echo Found a virtual environment from another computer; rebuilding it...
+    rmdir /s /q ".venv" >nul 2>nul
+)
+
+set "VENV_TRIES=0"
+:make_venv
+set /a VENV_TRIES+=1
 if not exist "%VENV_PY%" (
     echo Creating virtual environment in .venv ...
     %PYLAUNCH% -m venv .venv
 )
-if not exist "%VENV_PY%" (
-    echo.
-    echo Failed to create the virtual environment ^(.venv^).
-    echo Make sure your Python install includes the "venv" module.
-    goto end
-)
 
 REM Confirm the venv Python actually runs (same 42 trick as above).
 set "VENVOK="
-for /f "delims=" %%v in ('"%VENV_PY%" -c "print(42)" 2^>nul') do if "%%v"=="42" set "VENVOK=1"
-if not defined VENVOK (
+if exist "%VENV_PY%" for /f "delims=" %%v in ('"%VENV_PY%" -c "print(42)" 2^>nul') do if "%%v"=="42" set "VENVOK=1"
+if defined VENVOK goto venv_ready
+
+if !VENV_TRIES! geq 2 (
     echo.
-    echo The virtual environment Python did not run correctly.
-    echo Try deleting the .venv folder and running this file again.
+    echo Could not create a working virtual environment ^(.venv^).
+    echo Make sure your Python install includes the "venv" module,
+    echo then run this file again.
     goto end
 )
+echo The virtual environment did not work; rebuilding it from scratch...
+rmdir /s /q ".venv" >nul 2>nul
+goto make_venv
+
+:venv_ready
 
 REM --- 5. Install requirements only if "treys" is missing ------------
 "%VENV_PY%" -c "import treys" >nul 2>nul

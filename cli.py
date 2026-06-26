@@ -61,8 +61,13 @@ def run_hand(hand_counter, starting_stack, hero_chips):
         if board_cards:
             print(f"\n  Running {SIM_COUNT} arena-mode simulation loops...")
 
-        rec = recommend(hero_cards, board_cards, active_players, hero_chips,
-                        starting_stack, current_pot, call_amount)
+        try:
+            rec = recommend(hero_cards, board_cards, active_players, hero_chips,
+                            starting_stack, current_pot, call_amount)
+        except ValueError as exc:
+            print(f"\n  Cannot evaluate this spot: {exc}")
+            print("  Ending this hand — please re-enter cards next time.")
+            break
 
         print("\n  " + "-" * 40)
         print(f"  Calculated Equity : {rec.equity:.1f}%")
