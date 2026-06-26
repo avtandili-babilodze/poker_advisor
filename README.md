@@ -50,7 +50,3 @@ Example: `As Kd Th 2c`
 ## Dependencies
 
 - `treys` - Poker hand evaluation and deck management
-
-## License
-
-MIT
